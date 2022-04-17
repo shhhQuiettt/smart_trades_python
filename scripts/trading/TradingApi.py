@@ -31,6 +31,7 @@ class TradingApi:
         self.uniswap_v2_router_address = config["networks"][self.network]["uniswap_v2_router_02"]
         self.uniswap_v2_router = interface.IUniswapV2Router02(self.uniswap_v2_router_address)
 
+        self.min_amount_scale = 0.99 if not debug else 0.95
         self.transaction_kwargs = {"from": self.account} if not debug else {"from": self.account,
                                                                             "gas_limit": 12_000_000,
                                                                             "allow_revert": True}
@@ -48,25 +49,23 @@ class TradingApi:
         return price
 
     def buy(self, baseTokensToExchange):
-        pass
-        # # amountOutMin = self.getTokenPrice() * usdToExchange
-        # # converting to wei notation
-        # baseTokensToExchange *= 10 ** 18
-        #
-        # # approving spent token
-        # approve_tx = self.base_token_contract.approve(self.uniswap_v2_router_address, baseTokensToExchange,
-        #                                               {"from": self.account})
-        # approve_tx.wait(1)
-        #
-        # amountOutMin = 10 ** -9
-        # path = [self.base_token_address, self.uniswap_v2_router.WETH()]  # self.token_address]
-        # deadline = time() + self.seconds_to_deadline
-        #
-        # tx = self.uniswap_v2_router.swapExactTokensForTokens(baseTokensToExchange, amountOutMin, path,
-        #                                                      self.account.address,
-        #                                                      deadline, {"from": self.account, "allow_revert": True})
-        # # return spent, received
-        # return tx
+        """
+        param baseTokensToExchange: has to be in wei notation
+        """
+
+        # approving spent token
+        approve_tx = self.base_token_contract.approve(self.uniswap_v2_router_address, baseTokensToExchange,
+                                                      self.transaction_kwargs)
+        approve_tx.wait(1)
+
+        path = [self.base_token_address, self.token_address]
+        deadline = time() + self.seconds_to_deadline
+
+        amount_out_min = self.min_amount_scale * self.getTokenPrice() * baseTokensToExchange / 10 ** 18
+        buy_tx = self.uniswap_v2_router.swapExactTokensForTokens(baseTokensToExchange, amount_out_min, path,
+                                                                 self.account.address, deadline,
+                                                                 self.transaction_kwargs)
+        return buy_tx
 
     def sell(self, tokensToExchange):
         """
@@ -78,15 +77,14 @@ class TradingApi:
                                                  {"from": self.account})
         approve_tx.wait(1)
 
-        amount_out_min = 0.985 * 10 ** 18 * tokensToExchange / self.getTokenPrice()
+        amount_out_min = self.min_amount_scale * 10 ** 18 * tokensToExchange / self.getTokenPrice()
         print(f"{amount_out_min=}")
         path = [self.token_address, self.base_token_address]
         deadline = time() + self.seconds_to_deadline
 
-        tx = self.uniswap_v2_router.swapExactTokensForTokens(tokensToExchange, amount_out_min, path,
-                                                             self.account.address,
-                                                             deadline, self.transaction_kwargs)
-        tx.wait(1)
+        sell_tx = self.uniswap_v2_router.swapExactTokensForTokens(tokensToExchange, amount_out_min, path,
+                                                                  self.account.address,
+                                                                  deadline, self.transaction_kwargs)
+        sell_tx.wait(1)
 
-        # return spent, received
-        return tx
+        return sell_tx

@@ -23,18 +23,21 @@ def test_sell():
     price = trading_api.getTokenPrice()
     sell_tx = trading_api.sell(to_spend)
     spent, gained = sell_tx.return_value
-    assert spent == to_spend and gained >= 0.985 * 10 ** 18 * to_spend / price
+    assert spent == to_spend and gained >= trading_api.min_amount_scale * 10 ** 18 * to_spend / price
 
 
 def test_buy():
     current_network = network.show_active()
-    trading_api = TradingApi(config["networks"][current_network]["dai_eth_price_feed"], "weth", 60 * 2)
+    trading_api = TradingApi(config["networks"][current_network]["dai_eth_price_feed"], "weth", 3060 * 2, debug=True)
     buy_for = 10 * 10 ** 18
     price = trading_api.getTokenPrice()
 
     if trading_api.getBalance()["dai"] < buy_for:
-        trading_api.sell(1_000 + price * buy_for / 10 ** 18)
+        amount = 1_000 + price * buy_for / 10 ** 18
+        get_weth(amount, trading_api.account.address)
+        trading_api.sell(amount)
 
-    buy_tx = trading_api.buy(1000)
+    print(trading_api.getBalance())
+    buy_tx = trading_api.buy(buy_for)
     spent, gained = buy_tx.return_value
-    assert spent == buy_for and gained >= price * buy_for / 10 ** 18
+    assert spent == buy_for and gained >= trading_api.min_amount_scale * price * buy_for / 10 ** 18
