@@ -2,6 +2,8 @@ import mariadb
 import sys
 import logging
 from typing import List
+from datetime import datetime
+import mysql.connector as mariadb
 
 
 class Repository():
@@ -9,13 +11,30 @@ class Repository():
     A class used to store transactions data in database
     """
 
-    def __init__(self, db_address: str, db_user: str, db_password: str, db_port: int, db_name: str):
+    def __init__(self, db_address: str, db_user: str, db_password: str,
+                 db_port: int, db_name: str,
+                 log_file: str = "transactions.log"):
+
+        # setting logger
+        self.log = logging.getLogger(__name__)
+        self.log.setLevel(logging.DEBUG)
+
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.INFO)
+        self.log.addHandler(file_handler)
+
+        stream_handler = logging.StreamHandler()
+        self.log.addHandler(stream_handler)
+
         try:
-            self.conn = mariadb.connect(host=db_address, user=db_user, password=db_password, port=db_port,
-                                        database=db_name)
+            self.conn = mariadb.connect(host=db_address, user=db_user,
+                                        password=db_password,
+                                        port=db_port,
+                                        database=db_name,
+                                        autocommit=True)
 
         except mariadb.Error as e:
-            logging.error(f"Error connecting to MariaDB Platform: {e}")
+            self.log.error(f"Error connecting to MariaDB Platform: {e}")
             sys.exit(1)
 
         self.cur = self.conn.cursor(dictionary=True)
@@ -43,10 +62,21 @@ class Repository():
              gasEstimated, newBaseTokenBalance, newTokenBalance]
         """
 
-        return [str(tx_dict["tx_time"]), int(tx_dict["tx_type"], tx_dict["base_token_exchanged"],
-                tx_dict["token_exchanged"], tx_dict["amount_out_min"], tx_dict["oracle_price"], tx_dict["gas_price"],
-                tx_dict["gas_used"], tx_dict["gas_estimated"], tx_dict["new_base_token_balance"],
-                tx_dict["new_token_balance"]]
+        try:
+            return [
+                int(tx_dict["tx_time"]),
+                tx_dict["tx_type"],
+                int(tx_dict["base_token_exchanged"]),
+                int(tx_dict["token_exchanged"]),
+                int(tx_dict["amount_out_min"]),
+                int(tx_dict["oracle_price"]),
+                int(tx_dict["gas_price"]),
+                int(tx_dict["gas_used"]),
+                int(tx_dict["gas_estimated"]),
+                int(tx_dict["new_base_token_balance"]),
+                int(tx_dict["new_token_balance"])]
+        except KeyError as e:
+            self.log.error(f"Missing transaction attribute: {e.args}")
 
     def get_transactions(self, limit: int = None) -> List[dict]:
         """
@@ -59,7 +89,7 @@ class Repository():
             self.cur.execute(sql)
             return self.cur.fetchall()
         except mariadb.Error as e:
-            logging.error(f"Error selecting from MariaDB: {e}")
+            self.log.error(f"Error selecting from MariaDB: {e}")
 
     def insert_transaction(self, tx_data: dict):
         """
@@ -71,28 +101,10 @@ class Repository():
             all transaction data, that are passed to _serializer method
         """
         tx_serialized_data = self._tx_serializer(tx_data)
-        print(tx_serialized_data)
-        sql = """insert into transactions (
-              txTime, txType, baseTokenExchanged, 
-              tokenExchanged, amountOutMin, oraclePrice, gasPrice, gasUsed,
-              gasEstimated, newBaseTokenBalance, newTokenBalance 
-            ) 
-            values 
-              (
-                %s,
-                %s,
-                %d,
-                %d,
-                %d,
-                %d,
-                %d,
-                %d,
-                %d,
-                %d,
-                %d
-              )
-"""
+        sql = "insert into transactions ( txTime, txType, baseTokenExchanged, tokenExchanged, amountOutMin, oraclePrice, gasPrice, gasUsed, gasEstimated, newBaseTokenBalance, newTokenBalance ) values ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )"
         try:
             self.cur.execute(sql, tx_serialized_data)
+            self.log.info(
+                f"Inserted \'{tx_data['tx_type']}\' transaction -> txId: {self.cur.lastrowid} at timestamp: {datetime.fromtimestamp(tx_data['tx_time'])}")
         except mariadb.Error as e:
-            logging.error(f"Error inserting to MariaDB: {e}")
+            self.log.error(f"Error inserting to MariaDB: {e}")

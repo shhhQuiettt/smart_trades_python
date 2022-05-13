@@ -1,21 +1,9 @@
-from testfixtures import LogCapture
-import pytest
 from scripts.repository.Repository import Repository
-import time
-from datetime import datetime
 from os import environ
+import time
 
 
-@pytest.fixture()
-def repository():
-    """
-    Fixture that creates valid repository, and cleans transaction
-    table in test database
-    after test.
-    Environmental variables are loaded by brownie from .env file
-    specified in brownie-config.yaml
-    """
-
+def main():
     db_address = environ["DB_ADDRESS"]
     db_user = environ["DB_USER"]
     db_password = environ["DB_PASSWORD"]
@@ -24,20 +12,7 @@ def repository():
     repository = Repository(db_address=db_address, db_user=db_user,
                             db_password=db_password, db_port=db_port,
                             db_name=db_name)
-    yield repository
-    repository.cur.execute("delete from transactions where txId < 1000")
-    # repository.cur.execute("delete from transaction")
 
-
-def test_with_invalid_db_programm_exits():
-    with pytest.raises(SystemExit) as e:
-        invalid_repository = Repository("invalid", "args", "what",
-                                        9, "isgoingon")
-    assert e.type == SystemExit
-    assert e.value.code == 1
-
-
-def test_insert_transaction(repository):
     tx_data = {
         "tx_time": int(time.time()),
         "tx_type": "buy",
@@ -53,5 +28,7 @@ def test_insert_transaction(repository):
     }
 
     repository.insert_transaction(tx_data)
-    # fr"Inserted \'buy\' transaction -> txId: (?s)  at {datetime.fromtimestamp(tx_data['tx_time'])}")
-    assert len(repository.get_transactions()) == 1
+
+
+if __name__ == '__main__':
+    main()
