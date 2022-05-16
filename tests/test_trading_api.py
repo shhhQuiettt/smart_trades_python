@@ -6,7 +6,9 @@ from scripts.helpful_scripts import get_account
 
 def test_get_price_returns_price_from_oracle_dai_eth():
     current_network = network.show_active()
-    trading_api = TradingApi(config["networks"][current_network]["dai_eth_price_feed"], "weth", 5)
+    trading_api = TradingApi(
+        config["networks"][current_network]["dai_eth_price_feed"],
+        "weth", 5)
     price = trading_api.getTokenPrice()
     print(price)
     assert price > 0
@@ -14,7 +16,9 @@ def test_get_price_returns_price_from_oracle_dai_eth():
 
 def test_sell():
     current_network = network.show_active()
-    trading_api = TradingApi(config["networks"][current_network]["dai_eth_price_feed"], "weth", 60 * 2, debug=True)
+    trading_api = TradingApi(
+        config["networks"][current_network]["dai_eth_price_feed"],
+        "weth", 60 * 2, debug=True)
     to_spend = 0.01 * 10 ** 18
 
     if trading_api.getBalance()["weth"] < to_spend:
@@ -28,7 +32,9 @@ def test_sell():
 
 def test_buy():
     current_network = network.show_active()
-    trading_api = TradingApi(config["networks"][current_network]["dai_eth_price_feed"], "weth", 3060 * 2, debug=True)
+    trading_api = TradingApi(
+        config["networks"][current_network]["dai_eth_price_feed"],
+        "weth", 3060 * 2, debug=True)
     buy_for = 10 * 10 ** 18
     price = trading_api.getTokenPrice()
 

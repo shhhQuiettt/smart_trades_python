@@ -5,3 +5,4 @@ __pycache__
 build/
 reports/
 transactions.log
+scripts/logic/find_parameters.py

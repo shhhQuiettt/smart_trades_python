@@ -22,23 +22,31 @@ def test_get_parameters_returns_good_parameters():
     n = 2_000
 
     for m in range(10, 100_000, 2):
-        price_logic = PriceLogic(l, h, n, m)
+        price_logic = PriceLogic(l, h, n, m, m)
 
         assert (
-                absolute_error(price_logic.get_usd_to_exchange(l, "buy"), 0.8 * m)
+                absolute_error(
+                    price_logic.get_amount_to_exchange(l, "buy"),
+                    0.8 * m)
                 < 0.000001
         )
         assert (
-                absolute_error(price_logic.get_usd_to_exchange(h, "buy"), 0.01 * m)
+                absolute_error(
+                    price_logic.get_amount_to_exchange(h, "buy"),
+                    0.01 * m)
                 < 0.000001
         )
 
         assert (
-                absolute_error(price_logic.get_usd_to_exchange(h, "sell"), 0.8 * m)
+                absolute_error(
+                    price_logic.get_amount_to_exchange(h, "sell"),
+                    0.8 * m)
                 < 0.000001
         )
         assert (
-                absolute_error(price_logic.get_usd_to_exchange(l, "sell"), 0.01 * m)
+                absolute_error(
+                    price_logic.get_amount_to_exchange(l, "sell"),
+                    0.01 * m)
                 < 0.000001
         )
 

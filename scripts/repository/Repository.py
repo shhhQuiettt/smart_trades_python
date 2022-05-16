@@ -18,12 +18,15 @@ class Repository():
         # setting logger
         self.log = logging.getLogger(__name__)
         self.log.setLevel(logging.DEBUG)
+        formatter = logging.Formatter("[%(asctime)s] - %(message)s")
 
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(formatter)
         self.log.addHandler(file_handler)
 
         stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
         self.log.addHandler(stream_handler)
 
         try:
